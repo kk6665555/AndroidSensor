@@ -1,18 +1,29 @@
 package com.example.mac.mysesortest;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener2;
 import android.hardware.SensorManager;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -21,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private MySensorListerener listener;
     private TextView x,y,z;
     private MyView myview;
+    private File sdroot;
+    private File photoFile;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,7 +54,54 @@ public class MainActivity extends AppCompatActivity {
         }
         sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         listener = new MySensorListerener();
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA,
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    123);
+        }else {
+            init();
+        }
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        init();
+    }
+
+    private void init(){
+        sdroot = Environment.getExternalStorageDirectory();
+
+        myview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                takePic1();
+            }
+        });
+    }
+    private void takePic1(){
+        photoFile = new File(sdroot, "brad.jpg");
+        Uri uri = Uri.fromFile(new File(sdroot, "brad.jpg"));
+//        grantUriPermission(getPackageName(), uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//        revokeUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        Intent it = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        it.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+//        it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivityForResult(it,1);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode==1){
+            Drawable drawable = BitmapDrawable.createFromPath(photoFile.getAbsolutePath());
+            myview.setBackground(drawable);
+        }
     }
 
     @Override
